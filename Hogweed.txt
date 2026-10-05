@@ -1,0 +1,1031 @@
+--- Страница 1 ---
+IEEE JOURNAL OF SELECTED TOPICS IN APPLIED EARTH OBSERV ATIONS AND REMOTE SENSING, VOL. XX, NO. X, MONTH 2022 1
+Drone-aided Detection of Weeds: Transfer Learning
+for Embedded Image Processing
+Iaroslav Koshelev, Maxim Savinov, Alexander Menshchikov, Andrey Somov
+Abstract —In this article, we address the problem of Hogweed
+detection using a drone equipped with an RGB and multispectral
+cameras. We study two approaches (i) offline detection running
+on the orthophoto of the area scanned within the mission, and (ii)
+realtime scanning from the frames stream directly on the edge
+device performing the flight mission. We show that by fusing the
+information from an additional multispectral camera installed
+on the drone, there is an opportunity to boost the detection
+quality which then can be preserved even with a single RGB
+camera setup by introduction of additional Convolution Neural
+Network (CNN) trained with transfer learning to produce the
+fake multispectral images directly from the RGB stream. We
+show that this approach helps either eliminate the multispectral
+hardware from the drone or if only the RGB camera is at
+hand, to boost the segmentation performance by the cost of
+slight increase in computational budget. To support this claim we
+have performed an extensive study of networks performance in
+simulations of both realtime and offline modes, where we achieve
+at least 1.1% increase in terms of mean intersection over union
+(mIoU) metric when evaluated on RGB stream from the camera
+and 1.4% when evaluated on ortophoto data. Our results show
+that the proper optimization guarantees a complete elimination
+of the multispectral camera from the flight mission by adding a
+preprocessing stage to segmentation network without the loss of
+quality.
+Index Terms —Semantic segmentation, deep learning, transfer
+learning, edge computing
+I. I NTRODUCTION
+CONTINUOUSLY growing human population imposes
+strict demands to agricultural industry in terms of im-
+proving the crop yields and making the food production
+efficient. At the same time, high efficiency can be achieved
+by controlling and removing the weeds. To overcome this
+challenge a high number of the state-of-the-art technologies
+have been applied in the scope of precision agriculture [1].
+Distribution of weeds and, in particular, Hogweed of Sos-
+nowsky, is a quickly growing problem for agricultural industry.
+Hogweed of Sosnowsky is a weed that has spread across
+Eurasia region, including European and Asian countries, Great
+Britain and Russia, as well as local parts of North American
+continent. Hogweed typically grows for up to 5 mand may
+have the diameter for up to 12 cm. It is capable of producing
+thousands of seeds which are then distributed by wind across
+large area. The plant produces toxins which are hazardous for
+human, but at the same time hogweed creates a danger to other
+crops including the farming ones by affecting their ecosystem.
+This hazardous weed must, therefore, be precisely identified
+and removed.
+Authors are with Skolkovo Institute of Science and Technology, Moscow,
+Russia. Corresponding author e-mail: a.somov@skoltech.ru.Traditionally, there are three typical approaches for weeds
+localization: (i) inspection by human, (ii) satellite imaging, and
+(iii) Unmanned Aerial Vehicles (UA V) monitoring. We discuss
+these approaches in Section II.
+In this work, we rely on the UA V option due to its practical
+feasibility. The most commonly utilized sensor setup for
+this platform consists of a single video-camera, capable of
+producing high-quality RGB images and a Global Navigation
+Satellite System sensor providing geographic coordinates for
+the measurements from the camera. Additional multispectral
+camera is also typically introduced for the crops monitoring
+missions to allow for a computation of vegetation indices.
+The same sensor could also be utilized to increase the crops
+detection accuracy as it was shown for example in [2], but
+exploiting two video cameras on board is not weight and cost
+wise.
+In this paper we investigate the trade offs between seman-
+tic segmentation quality of crops and the imaging sensors
+setup complexity. We use a task of hogweed detection as a
+playground and propose a solution based on the advances of
+deep learning, which allows for the complete avoidance of a
+multispectral camera from the mission without any detoriation
+of segmentation performance compared to the multiple cam-
+eras platform. More specifically, we report on the following
+novelty:
+1) Dataset collection, alignment and labeling. We propose
+to label the hogweed plants by transforming a sequence
+of overlapping frames into a single orthophoto. It en-
+ables labeling the crops in the area of interest only once
+without repetition in intersecting parts of the images.
+The corresponding labels are then back-transformed to
+the camera frames using a greedy features-based image
+alignment procedure. Similar procedure is applied to
+align the RGB and multispectral data, with the cor-
+responding orthophotos acting as a reference. As a
+result our approach the labeled and aligned RGB and
+multispectral images are produced fast without a need
+to synchronize frame streams coming from two separate
+camera sensors. To the best of our knowledge, such
+methodology was never reported before.
+2) Removal of multispectral camera from the setup by
+replacement with the preprocessing network. Instead of
+using two cameras setup, we propose to adopt a transfer
+learning procedure and learn a convolution neural net-
+work from the collected paired data to mimic multispec-
+tral images. Such images are then synthesised during
+preprocessing stage, which allows to completely avoid
+multispectral hardware in the aerial platform without any
+
+--- Страница 2 ---
+IEEE JOURNAL OF SELECTED TOPICS IN APPLIED EARTH OBSERV ATIONS AND REMOTE SENSING, VOL. XX, NO. X, MONTH 2022 2
+deterioration of segmentation quality.
+This article is organized as follows: we introduce the readers
+to the relevant works in the area in Section II. In Section
+III we discuss the methods used in this research. Our results
+are provided in Section IV . Finally, we provide concluding
+remarks in Section V .
+II. R ELATED WORK
+A. Weed Detection
+Traditional approaches of weeds localization include manual
+inspection with special handheld equipment, which is done
+either by foot or with utilization of transport machines like
+cars or tractors [3]. Although these methods can still be in
+favour for farmers, there is a certain shift towards the systems
+allowing for monitoring of larger areas while preventing the
+spread of seeds by feet and wheels. That is why the modern
+development of methods involving the Unmanned Aerial Ve-
+hicles (UA V) and even satellites imaging starts to gain close
+attention for the purposes of more effective human-free ways
+of crops monitoring and weed control [4].
+Currently satellite imaging provides accurate images across
+huge areas with different spectral bands lying far beyond just
+conventional visual spectrum, provided by ordinary RGB cam-
+era. However, satellite imaging still does not allow to perform
+precise crops localization due to the large Ground Sampling
+Distance (GSD), since resolution of the best available satellite
+images does not exceed 30 cm/px . Typical size of the hogweed
+leafs is around the same 30 cm, which results in a situation,
+when a single hogweed plant is resolved into image area of
+several pixels, which makes its detection nearly impossible.
+Also satellite monitoring system is vulnerable to the weather
+changes, since it becomes impossible to capture plants at a
+cloudy weather. At the same time, UA Vs enable to select
+GSD from millimeters to meters per pixel depending on the
+needs by varying altitude during the mission. As for UA Vs it
+is still impossible to perform monitoring in rainy conditions,
+the applicability of them is far more flexible, than satellites.
+Currently, the limitation on equipment and computational
+resources the UA Vs can carry, as well as the area UA Vs can
+cover per a single mission, are strongly bounded by their lifting
+capacity and power supply resources. This issue poses the
+problem of effective management of sensors and computer
+vision algorithms used for monitoring.
+Nowadays in precision agriculture a multisensor setup is
+typically used. It combines a traditional RGB sensor together
+with the infrared one. For the latter the Near Infrared band
+(NIR) is usually considered. Compared to a single RGB
+camera, the multispectral cameras enable crops monitoring
+with much greater precision as well as direct calculation of
+their vegetation characteristics. This is done at a cost of
+additional hardware carried on board during the mission, and
+additional efforts for accurate sensors synchronization and
+images alignment.
+B. Image Analysis in Precision Agriculture
+Even before the raise of deep learning, many algorithms
+were proposed to perform a high-level vision of the images.Most of them rely on handcrafted distinct features of the
+object of interest, and it was shown that this principle is
+suitable for the agriculture as well [5]. Now almost all state-
+of-the-art approaches involve the usage of CNNs and even
+transformers. Ronneberger et al. [6] were one of the pioneers
+who introduced a U-shaped neural architecture for the task
+of image segmentation, which is still applied in a real high-
+level vision tasks. This architecture was shown to produce
+state-of-the-art results in agricultural tasks as well and being
+capable to run on the edge device. For example, in [7] U-
+shaped architecture was deployed to the unmanned ground
+vehicle (UGV) in order to perform a robust estimate a pixel-
+wise labeling of the images into crop and weed. It was shown,
+that this setup outperforms previous state-of-the-art approaches
+and improves the accuracy of crop-weed classification without
+requiring a retraining of the model. In [8] the authors reported
+on a comparison between other segmentation CNNs which
+showed that U-Net performance is slightly lower than the com-
+peting SegNet and RefineNet with ResNet backbone. However,
+the computational complexity of the latter two models does not
+allow for deploying them to an embedded unit and perform
+the inference in real-time during the mission.
+In our previous work [8] we focused on the optimization of
+the most relevant FCNN architectures for inference on board
+the Single Board Computer (SBC). The point of this work
+was the feasibility of the application of such a drone with AI
+on board in Precision Agriculture (PA). However, the dataset
+was collected during a single day. It does not contain different
+phases of the hogweed growth. Thus, the capabilities of the
+FCNN, trained on such a dataset are limited. Furthermore, the
+data were collected using the RGB camera only. The current
+paper proposes an approach, that enhances the capabilities of
+the monitoring system in several ways.
+First, the dataset used in this study was collected in the same
+area with a weekly period of 2.5 months. It contains the data on
+the growth phases of the hogweed during this timespan. Hence,
+such a dataset is valuable for both AI and PA areas. Moreover,
+the dataset was collected using both RGB and multispectral
+cameras. Additional channels give more information about the
+object of interest and improve the accuracy and robustness
+of the neural network. The current research’s contribution is
+the enhancement of the neural network capabilities due to the
+generation of artificial NIR channels. It provides a significant
+advantage in terms of both accuracy of predictions and fea-
+sibility such a monitoring system in practice. Application of
+the proposed approach allows rid of the multispectral camera
+for hogweed detection. Thus it makes the monitoring system
+cheaper, more sustainable, and prolongs the flight time.
+It should be noted that deployment of neural architecture
+to the edge device is not a trivial task [9] and various opti-
+mization techniques were proposed to overcome this problem.
+A hardware-based optimization for binary weight CNNs was
+proposed in [10] where the arithmetic core was optimized
+by elimination of the need for expensive multiplications, as
+well as by reduction of I/O bandwidth and storage. Typically,
+however, most well known techniques to accelerate inference
+are software-based, and include architecture-related optimiza-
+tions which are performed either manually or automatically via
+
+--- Страница 3 ---
+IEEE JOURNAL OF SELECTED TOPICS IN APPLIED EARTH OBSERV ATIONS AND REMOTE SENSING, VOL. XX, NO. X, MONTH 2022 3
+Neural Architecture Search (NAS) and pruning1. It was also
+shown that another type of optimization performed by quantiz-
+ing neural network weights and inference procedure to uint8
+or even binary can drastically accelerate the inference without
+large deterioration of their performance. Such techniques were
+used for example in [11] to accelerate semantic segmentation
+task on NVIDIA Jetson Xavier NX by the usage of computa-
+tionally efficient manually designed adaptive blocks, namely
+multi-fiber unit and attention module, as well as quantization
+of model weights to int8 and pruning, helping achieve a good
+inference speed without a big drop of prediction quality.
+C. Intelligent Monitoring Systems in Precision Agriculture
+There are different types of autonomous vehicles, which al-
+low a precise monitoring of crops. Typically they are classified
+into two groups, UA Vs, that operate in the air, and UGVs,
+that operate on the ground. As UGVs are able to perform
+individual plant phenotyping, characteristics monitoring and
+even manipulations with crops and weeds [12], in crops
+monitoring tasks the priority is given to UA Vs due to their
+ability to cover large areas relatively fast without disseminating
+the seeds.
+Typically, the UA Vs are equipped with an RGB camera
+capturing the crops underneath in a visual spectrum, and the
+machine vision algorithms are processing the images from
+this camera in order to get the desired output. Typically such
+processing is done offline after the mission is complete [13]
+since the frames stream is stored on an internal storage of
+UA V [14] or is transferred to the intermediate server during
+the mission by a wireless protocol [15]. Since both cases are
+not practically feasible as they require additional efforts and do
+not allow for fast decision making, it is important to consider
+inference being performed directly on the edge device [16].
+This is especially vital for the hogweed detection, as the weed
+can spread very fast by generating up to 100,000 seeds a year
+which are quickly disseminated by wind. A proper detection
+and elimination of each poisonous plant is essential, and the
+edge computing enables it by providing the instant information
+on geolocation of the plant.
+In order to improve the monitoring outcomes, additional
+information can be provided to the vision algorithm in a form
+of a separate multispectral frame stream. Typically this is
+done to allow direct calculations of vegetation indices such as
+normalized difference vegetation index (NDVI) or normalized
+difference red edge index (NDRE) [17]. For example, in [18]
+authors report a UA V-based setup consisting of RGB and
+NIR-retrofitted camera, which performs imaging missions over
+rice and corn fields in the Philippines. They comment on
+using dual camera setup in order to compute precise NDVI
+of the crops. A survey performed by Radoglou-Grammatikis
+et al . [19] extends the list of possible multispectral camera
+usages towards optimization of the image acquisition system
+and water stress indices. At the same time robust quantitative
+1A. Kuzmin, M. Nagel, S. Pitre, S. Pendyam, T. Blankevoort, and M.
+Welling ”Taxonomy and evaluation ofstructured compression of convolutional
+neural networks”. Available as an arXiv preprint at https://arxiv.org/abs/1912.
+09802.studies require a proper usage of multispectral cameras and
+additional attention not only to their temporal calibration with
+visual band cameras, but also to the calibration of their spectral
+characteristics, as it was highlighted in [20].
+By this reason several approaches were proposed target-
+ing capture of multispectral information directly from the
+corresponding RGB camera frames. For example, several
+approaches propose to remove the near infrared blocking filter
+installed inside all the consumer RGB cameras [21]. In this
+case the signal from the NIR band is mixed with the red
+channel, however authors claim that it still helps to calculate
+the NDVI with high tolerance. Costa et al . [22] introduce a
+new NDVI mimicking index computed from RGB data by
+the use of a genetic algorithm. Finally, inspired by Pix2Pix
+[23] performance in conditional synthesis tasks, Yuan et al .
+[24] and Soni et al. [25] separately proposed to use the same
+conditional generative adversarial CNN for the purpose of
+sampling visually plausible near infrared spectral band from
+the satellite and aerial RGB observations respectively.
+III. M ETHODS
+A. Data Collection
+Due to the individual features of a hogweed plant, large size
+of its leaves and large height, we found it possible to perform
+an aerial collection of the data. We have performed two flight
+missions in two separate days with the time difference of
+two weeks in order to cover crops in different growth stages,
+scanning the two neighboring fields in xcity, ycountry,2and
+we used images captured from both fields separately for train
+and evaluation purposes. In both missions we collected RGB
+images of size 3000×4000 (height ×width) pixels using
+DJI-FC330 camera mounted on a DJI drone capturing under-
+neath field in spatial locations predefined during the mission
+planning. Specifically for the flight collecting training data,
+we have mounted an additional MAPIR Survey3 multispectral
+camera, capturing red (660 nm), green (550 nm) and NIR (850
+nm) channels of the same spatial resolution at a predefined
+frequency of 0.5 Frames Per Second (FPS) and we denote the
+data from this camera as RGN.
+In this research, we generate a fake infrared channel using
+a Generative Adversarial Neural Network. This approach is
+promising from a practical point of view. There are several
+alignment issues that we address using an artificial channel.
+1) First of all, the camera DJI-FC330 is attached to the drone’s
+gimbal. It allows a precise control of camera position during
+the flight according to the mission requirements. The gimbal
+is also used to stabilize the camera in case of wind gusts.
+On the other hand the multispectral camera is fixed and is
+always aligned with the drone’s pose. Hence there is no
+way to compensate for its shift in case of any disturbances,
+and the resulted images from two cameras are not aligned
+with each other. 2) Due to different design of the lenses,
+the apertures of cameras are 20 centimeters away from each
+other, so both the field of view and the sensors illumination
+varies between the two. This effect also contributes to the
+2Location is hidden due to the blind review and the manuscript submission
+requirements.
+
+--- Страница 4 ---
+IEEE JOURNAL OF SELECTED TOPICS IN APPLIED EARTH OBSERV ATIONS AND REMOTE SENSING, VOL. XX, NO. X, MONTH 2022 4
+RGB orthophoto
+RGN orthophotoFeature
+based
+alignment 
+Affine warping
+Feature
+based
+alignment
+Affine warping
+Fig. 1. Greedy pipeline of RGB and RGN orthophotos alignment and dataset creation for training neural networks. At first stage two orthophotos are aligned
+with a single affine transform, and the alignment is further refined by a second region-adaptive transform.
+alignment problems. 3) Two cameras have different framerate
+and are not synchronised, so they do not perform every shot
+simultaneously. It raises the issue of alignment in case of real-
+time processing during the flight. 4) Using two cameras also
+lead to issues even in the case of two orthophotos alignment.
+There are separate GPS antennas for each camera. GPS data is
+critical for the orthophotos stitching, therefore it will influence
+the precision of the resulting orthophoto. 5) NIR cameras
+typically have lower resolution, then we need to crop images
+from RGB cameras in case of real-time data processing. It
+leads to the loss of data from the RGB camera, therefore
+decreasing the overall effectiveness of the system. 6) Finally,
+a multispectral camera is expensive in comparison to a single-
+board computer and a drone. Moreover, it is an additional
+payload. Then it will decrease the time of flight. To sum up,
+it is better to have a single cheap RGB camera on-board,
+rather than two cameras. To upgrade RGB camera with NIR
+capabilities, we can use the algorithm, described in this paper.
+As a result, the monitoring system with a single camera will
+be cheap and reliable.
+B. Data Processing and Labeling
+The collected dataset consists of two independent sequences
+of frames, which are not synchronized between each other.
+In order to align them, we propose to fuse both frames
+streams into a corresponding orthophotos, and we use an
+OpenDroneMap software for this3. Once the step is com-
+pleted, it is convenient to label all the regions of interest
+within the RGB orthophoto, using any raster image processing
+software.
+In order to align the images and construct a paired dataset
+for training, we have applied a greedy region-based procedure.
+At the first step, the two orthophotos are globally aligned based
+on the best affine transformation between corresponding ORB
+features [26]. At the second stage we divide both orthophotos
+and the labels into overlapping patches of size 256×256px.
+We use the same alignment procedure applied to each patch
+3ODM - A command line toolkit to generate maps, point clouds, 3D models
+and DEMs from drone, balloon or kite images. Available at https://github.com/
+OpenDroneMap/ODM.independently and we search for the best match within the
+region of ±100pixels around the patch. We depict the overall
+pipeline in Fig. 1.
+Constructing training data for the online scanning regime
+involves additional RGB frames stream used to create the
+orthophoto. For this scenario, an intermediate stage based
+on the same alignment procedure is required in order to
+find the position of the entire frame in the RGB orthophoto.
+The selected region is cropped from both orthophotos and
+labels. Due to the nature of texturing step used to synthesise
+orthophotos, the best match between original frame and its
+region inside the orthophoto is achieved within the central
+part of the frame. Thus we run the patch based refinement
+only on the central part of size 2000×2000 pixels. We have
+performed this procedure in order to sample both train and test
+data with random crops of size 128×128for training purposes
+and256×256 for the test. Since for the test dataset we do
+not collect multispectral images, we exclude this data from
+the discussed sampling procedure. Overall we have collected
+more than 20000 crops for training purposes and 83 crops for
+evaluation, and we carefully checked the correctness of the
+resulted labels by additional look at the images in the latter.
+We should note, that the region, where performed data
+collection contained both vegetating (young) hogweed crops
+and those, which have already faded (old). Since the pro-
+cedures required to eliminate these two types of hogweed
+plants can vary, we have labeled such cases with different
+semantic classed to learn the segmentation network to dis-
+tinguish between them, and facilitating an effective practical
+application of our work. For all our reported data we have
+used a manual labelling procedure in GIMP graphic editor4. It
+should be noted that only RGB orthophotos are required for
+labelling, since the produced labels can be back-projected to
+the corresponding RGN orthophotos and original frames using
+procedure discussed above. We release the dataset consisting
+of both training, validation and testing samples, where we
+included both labeled orthophoto together with a paired crops
+suitable for training. Dataset is available at www.x.com.5
+4The GIMP Development Team. Available at https://www.gimp.org.
+5It is the subject of double blind review.
+
+--- Страница 5 ---
+IEEE JOURNAL OF SELECTED TOPICS IN APPLIED EARTH OBSERV ATIONS AND REMOTE SENSING, VOL. XX, NO. X, MONTH 2022 5
+RGB Frame RGB Ortho Fake NIR from frame Fake NIR from ortho Real NIR ortho
+Fig. 2. Example of fake RGN frames synthesis with synthesis part of SynthFakeRGN model trained with frames and orthophoto data.
+C. Neural Network Architectures
+In this study, we do not provide extensive experiments
+with neural network architectures, since our main goal is to
+show the approaches to improve the performance of exist-
+ing predefined architecture when additional data is at hand.
+However, we do compare different architectures in two modes,
+namely computationally more and less intensive, and we do the
+special emphasis on the latter one in this work due to practical
+concerns. We depart from the high capacity neural networks
+and use a SegNet architecture [27] with 29.5M parameters
+for segmentation part and an encoder-decoder network with
+residual blocks [28] and 7.8M parameters for the fake NIR
+synthesis. Both architectures were proven to perform well with
+the general-purpose segmentation and synthesis tasks respec-
+tively [29] [30]. Targeting a balance between the performance
+and inference speed when evaluated on an embedded system,
+we have selected well-known U-Net architectures for both
+segmentation and synthesis tasks in the less computationally
+intensive regime, since its superiority for satisfying both goals
+was shown in recent papers [7]. It is a fully Convolution Neural
+Network (CNN) which was initially developed specifically for
+semantic segmentation task, however it was also shown, that
+this network can efficiently solve image to image tasks [31].
+Being an encoder-decoder architecture, the main benefit is that
+it allows processing and analysis of images at different scales,
+which allows to greatly increase its receptive field without
+the increase of computational complexity. Targeting the fast
+inference speeds, for segmentation network we have used a
+U-Net backbone consisting of 3 blocks in both encoder and
+decoder parts with 17.3M parameters total, and a backbone
+with 2 blocks and 2.2M parameters for synthesis. We found
+the capacity of these networks good enough to both obtain
+a good quality in semantic segmentation task, and run them
+with high speed on an embedded system.
+D. Training and Implementation Details
+We have conducted all our experiments using PyTorch
+framework [32], which allowed us to effectively deploy net-
+works training, involving parallel computations, to GPUs. In
+all cases we have trained our networks using crops of size
+128×128 pixels. We have used random crops as well as
+random multiple of 90° rotations and random horizontal and
+vertical flips to augment our training data. We minimised all
+objective functions using Adam optimizer [33] with learning
+rate of 1e−3, and a warm up scheduling was enabled for thefirst epoch. For training synthesis neural network, we have
+used an adversarial learning adopted from pix2pix [23]. Since
+the network chosen to perform synthesis is relatively small, we
+have used an adaptive gradient steps frequency [34] for both
+generator and discriminator in order to avoid discriminator’s
+overfitting and other instabilities.
+Overall, our training strategy is depicted in Fig. 3 and
+consists of three steps.
+1) During the first one we train our network to segment
+hogweed plants based on both RGB and RGN data
+concatenated and passed as an input. For this task we
+perform a supervised learning by optimizing the cross-
+entropy objective, as it is shown in Fig. 3 a).
+2) During the second step we train another neural network
+to synthesise fake RGN-like images out of the real RGB
+ones. The training of this stage is highlighted in Fig. 3
+b). For this task we conduct the adversarial training
+similar to earlier proposed pix2pix model [23], and we
+use the same loss function of the form:
+Lp2p=Ex,ylogD(x, y, θ D)+
+Exlog(1−D(x, G(x, θG), θD))+
+λ1Ex,y||y−G(x, θG)||1. (1)
+Here we denote RGB and RGN images as the x, y
+respectively, θGandθDas the trainable weights of
+generator and the discriminator networks GandD.
+Additionally, we involve the transfer learning and force
+our network to output images which should benefit to the
+target semantic segmentation task. For this purpose we
+penalise L2 objective Lsegcomputed between the output
+features of the network from the previous step evaluated
+on the ground-truth and fake RGN data:
+Lseg=Ex,y||T(x, y, θ T)−T(x, G(x, θG), θT)||2,(2)
+where we have denoted the segmentation network from
+the previous step and its weights as TandθT. We use the
+traditional Generative Adversarial Network (GAN) [35]
+min-max game to conduct the following optimization:
+θG= arg min
+θGmax
+θDLp2p+λ2Lseg. (3)
+The intuition behind this step is to fuse information
+about valuable features from RGN images which can
+benefit segmentation of hogweed plants into the pre-
+processing network trained at this stage. We have found
+
+--- Страница 6 ---
+IEEE JOURNAL OF SELECTED TOPICS IN APPLIED EARTH OBSERV ATIONS AND REMOTE SENSING, VOL. XX, NO. X, MONTH 2022 6
+Semantic
+segmentation
+network
+RGB
+RGN
+a)
+Preprocessing
+network
+(synthesis)RGB
+Pix2Pix
+conditional
+discriminator
+and losses
+Fake  RGNPretrained
+RGN+RGB
+segmentation
+network
+Real  RGN
+real
+fake
+b)
+Semantic
+segmentation
+network
+Preprocessing
+network
+(synthesis)RGB
+c)
+Fig. 3. Training procedure of the proposed segmentation pipeline: (a) the
+segmentation network is trained with real data, (b) the transfer learning
+procedure is used to train a synthesis network which provides the fake RGN
+frames, and (c) at the last stage the segmentation network is finetuned on the
+fake RGN data.
+values λ1= 100 from Eq. (1) and λ2= 10 from Eq. (3)
+to suit well for this goal.
+3) During the final step we perform an iterative inference
+of the network trained at the previous step through all
+our datasets samples to obtain fake RGN images and
+then finetune a semantic segmentation network on this
+data using the same procedure, as in the step 1. This
+step is depicted in Fig. 3 c) and does not require real
+RGN data anymore, since information about this domain
+is fused inside parameters of synthesis network during
+the previous stage.
+E. Porting to Embedded System
+We have used NVIDIA Jetson Xavier NX as a target
+device, since it was proven to be an efficient low-cost so-
+lution for various vision tasks in edge computing [8]. Inorder to accelerate the inference speed of our network and
+make simulations of the proposed approach running on an
+embedded system, we have applied the well-known techniques
+of network quantization and layers fusion (pruning). Due to
+specific choice of segmentation and synthesis networks in our
+less computationally intensive regime to be the standard U-
+Net architectures, the port of our models to the edge device
+is relatively straightforward. Due to this reason we have used
+NVIDIA TensorRT inference optimizer and runtime, which
+performs all the optimizations, as well as other architecture-
+specific tunings.
+F . Evaluation Metrics
+In order to evaluate our models and compare it to the
+baselines, we have used two most common approaches for
+the classification and semantic segmentation (i.e. classification
+of each image pixel), namely mean intersection over union
+(mIoU) and the Area Under the Curve (AUC) of a Receiver
+Operating Characteristic (ROC) curve, given by the true pos-
+itive and false positive rates. For more informative evaluation
+both metrics are computed in a multi-class regime when young
+and old crops are treated as different classes and in a binary
+regime when both types of crops are treated as a single class.
+As a reference, we have observed, that typical values of 60 %
+of mIoU reported in various multi-class semantic segmentation
+benchmarks [36] is considered as an acceptable segmentation
+performance.
+To assess the performance of our approach ported to em-
+bedded system, we measure the inference speed per 12MPx
+frame ( 3000×4000 px) in Frames Per Second (FPS), as well
+as the power consumption of the hardware in watts (W).
+IV. R ESULTS
+At the first stage of our study we validate the designed
+labels transfer. For this purpose we have randomly selected
+10 frames out of the sequence used to construct the training
+dataset. The proposed strategy was used to sample images
+crops with corresponding labels transferred from orthophoto
+data. For the same set of frames we have performed manual
+labeling, which allowed to get the true labels for the sampled
+crops and use them to perform a quantitative comparison. The
+evaluation performed by the means of mIoU showed 95%
+and90% for old and young crops respectively with the main
+source of error attributed to the inconsistencies introduced by
+independent manual labeling of frames and orthophoto. Such
+findings demonstrate that the difference between the true labels
+and the labels transferred from orthophoto with our proposed
+strategy is negligible. As it was extensively studied and proven
+in [37] [38], these small errors in labels do not affect the
+training and performance of neural networks. We also present
+an indicative example in Fig. 4 for a qualitative comparison.
+We have trained our models separately with orthophoto
+images and with images from the camera. For both scenarios
+we trained the following models:
+•Segmentation network working with RGB+RGN pair
+involving true RGN data (TrueRGN)
+
+--- Страница 7 ---
+IEEE JOURNAL OF SELECTED TOPICS IN APPLIED EARTH OBSERV ATIONS AND REMOTE SENSING, VOL. XX, NO. X, MONTH 2022 7
+TABLE I
+PERFORMANCE OF TRAINED LARGE MODELS (SEGNET+RESNET)EVALUATED ON TEST DATA FROM TRAIN AND TEST FIELDS . ROC-AUC AND M IOU
+METRICS ARE PRESENTED IN TABLE FOR MODELS TRAINED AND EVALUATED ON BOTH ORTHOPHOTO (ORTHO )AND FRAMES (FRAME )DATA . THE TYPE
+OF DATA USED FOR TRAINING IS GIVEN IN THE COLUMNS CAPTIONS UNDER THE NAME OF EACH MODEL ,WHILE THE DATA TYPE USED FOR TESTING IS
+GIVEN IN THE CAPTION OF EACH ROW UNDER THE FIELD TYPE .
+Dataset MetricTrueRGN SynthFakeRGN SynthFakeRGNnoTL NoRGN SynthNoRGN
+Frame Ortho Frame Ortho Frame Ortho Frame Ortho Frame Ortho
+Test field,Multi mIoU, %
+N/A N/A60.4 58.1 55.9 53.7 56.8 54.2 54.5 53.4
+Binary mIoU, % 82.4 80.9 76.7 78.1 76.5 78.9 73.6 78.0
+OrthoMulti ROC-AUC 0.921 0.916 0.890 0.906 0.883 0.912 0.880 0.907
+Binary ROC-AUC 0.905 0.897 0.869 0.880 0.867 0.884 0.854 0.878
+Test field,Multi mIoU, %
+N/A N/A57.5 50.7 50.5 48.7 56.4 52.9 46.7 51.9
+Binary mIoU, % 79.1 73.2 69.1 71.7 75.1 77.7 63.7 76.3
+FramesMulti ROC-AUC 0.908 0.885 0.862 0.879 0.884 0.905 0.840 0.899
+Binary ROC-AUC 0.885 0.852 0.823 0.841 0.858 0.877 0.792 0.868
+Train field,Multi mIoU, % 81.5 84.5 78.2 85.1 78.2 84.0 78.1 83.7 77.5 82.8
+Binary mIoU, % 82.2 85.4 79.3 85.3 79.1 84.7 79.7 84.3 78.8 83.0
+OrthoMulti ROC-AUC 0.924 0.938 0.909 0.941 0.909 0.935 0.910 0.934 0.906 0.930
+Binary ROC-AUC 0.915 0.933 0.901 0.932 0.900 0.929 0.907 0.927 0.899 0.920
+Train field,Multi mIoU, % 83.3 81.0 84.7 62.7 81.3 67.6 82.0 68.4 81.9 69.6
+Binary mIoU, % 83.4 81.9 84.8 68.1 81.7 75.6 83.2 74.0 82.3 74.5
+FramesMulti ROC-AUC 0.933 0.923 0.939 0.829 0.923 0.859 0.927 0.861 0.926 0.866
+Binary ROC-AUC 0.921 0.915 0.930 0.822 0.913 0.875 0.922 0.863 0.916 0.867
+TABLE II
+PERFORMANCE OF TRAINED SMALL MODELS (U-N ETS)EVALUATED ON TEST DATA FROM TRAIN AND TEST FIELDS . ROC-AUC AND M IOUMETRICS
+ARE PRESENTED IN TABLE FOR MODELS TRAINED AND EVALUATED ON BOTH ORTHOPHOTO (ORTHO )AND FRAMES (FRAME )DATA . THE TYPE OF DATA
+USED FOR TRAINING IS GIVEN IN THE COLUMNS CAPTIONS UNDER THE NAME OF EACH MODEL ,WHILE THE DATA TYPE USED FOR TESTING IS GIVEN IN
+THE CAPTION OF EACH ROW UNDER THE FIELD TYPE .
+Dataset MetricTrueRGN SynthFakeRGN SynthFakeRGNnoTL NoRGN SynthNoRGN
+Frame Ortho Frame Ortho Frame Ortho Frame Ortho Frame Ortho
+Test field,Multi mIoU, %
+N/A N/A65.1 61.1 61.4 59.7 64.5 58.3 61.6 57.3
+Binary mIoU, % 82.7 80.0 82.0 79.6 81.2 76.4 79.1 72.2
+OrthoMulti ROC-AUC 0.842 0.818 0.820 0.810 0.829 0.789 0.823 0.784
+Binary ROC-AUC 0.906 0.891 0.902 0.889 0.895 0.865 0.884 0.837
+Test field,Multi mIoU, %
+N/A N/A64.0 55.9 60.7 54.2 59.8 54.5 59.5 52.9
+Binary mIoU, % 80.8 77.8 79.7 76.1 75.9 75.6 78.2 68.0
+FramesMulti ROC-AUC 0.838 0.774 0.811 0.761 0.802 0.766 0.815 0.812
+Binary ROC-AUC 0.893 0.874 0.886 0.862 0.861 0.860 0.878 0.838
+Train field,Multi mIoU, % 75.7 81.6 72.7 85.7 68.2 83.7 73.9 81.5 69.4 79.9
+Binary mIoU, % 80.1 84.2 78.4 88.5 74.4 86.7 78.1 84.1 75.6 82.9
+OrthoMulti ROC-AUC 0.893 0.921 0.885 0.943 0.862 0.936 0.887 0.922 0.867 0.917
+Binary ROC-AUC 0.890 0.915 0.878 0.939 0.855 0.929 0.877 0.914 0.860 0.906
+Train field,Multi mIoU, % 78.8 75.3 78.1 59.7 76.1 52.1 75.7 60.6 75.5 55.0
+Binary mIoU, % 81.6 78.3 81.8 72.5 80.3 71.4 79.4 71.7 79.2 64.4
+FramesMulti ROC-AUC 0.909 0.892 0.910 0.810 0.900 0.794 0.895 0.812 0.895 0.770
+Binary ROC-AUC 0.899 0.879 0.899 0.843 0.891 0.833 0.886 0.838 0.884 0.790
+•Segmentation network working with only RGB frames
+(NoRGN)
+•Network consisting of synthesis and segmentation parts
+trained end-to-end with only RGB data (SynthNoRGN)
+•Network consisting of synthesis and segmentation parts
+trained using transfer learning procedure with true RGN
+data (SynthFakeRGN).
+•Network consisting of synthesis and segmentation parts
+trained without transfer learning procedure with true
+RGN data (SynthFakeRGNnoTL).
+In Tabs. I and II we report on the results of all our models
+evaluated on both mission we performed directly for testing
+purposes (Test field) as well as on a subset of data obtained
+during collection of our training data (Train field). In Fig. 2 we
+report the visual example of synthesis U-Net network trained
+to mimic orthophoto data. It should be noted, that there is no
+intersection of training and testing data.
+Several conclusions can be made from the tables. At first,metrics obtained on a subset of train field dataset are higher
+than those computed on test data. We think this change may
+indicate the difference in data collection and manual labeling
+performed for both train and test fields data separately at
+different time. The additional effect is overfitting, which is
+more pronounced for larger networks in Tab. I, where the
+gap between train and test fields is larger. Comparing the
+same models trained for either orthophoto data or frame data,
+but evaluated on both, it is clear that networks trained with
+frames are in general more robust with respect to the change
+of data type. Thus, the difference between multiclass mIoU
+metrics of SynthFakeRGN models trained with frames is on
+average 2% on test field data and 5.9% on train field one, while
+for the same models trained with orthophoto data it is 6.3%
+and 24.2% respectively. It means, that frames stream from
+the camera is more favourable for the purpose of hogweed
+precise monitoring, which supports our efforts in transferring
+all computations to the aerial platform.
+
+--- Страница 8 ---
+IEEE JOURNAL OF SELECTED TOPICS IN APPLIED EARTH OBSERV ATIONS AND REMOTE SENSING, VOL. XX, NO. X, MONTH 2022 8
+True labels Transferred labels
+Fig. 4. Qualitative comparison of true frame labels with those transferred from orthophoto. Old and young crops are denoted with red and blue colors
+respectively.
+Target SynthFakeRGN SynthNoRGN NoRGN
+Fig. 5. Performance of our models from Table I trained with orthophoto data on crop taken from the labeled othophoto of test field (best viewed in electronic
+version) .
+TABLE III
+PERFORMANCE OF TRAINED NETWORKS IN SIMULATIONS RAN ON AN EMBEDDED SYSTEM NVIDIA J ETSON XAVIER NX AND ON SERVER GPU
+NVIDIA T ESLA V100.
+NVIDIA Jetson Xavier NX NVIDIA Tesla V100
+TrueRGN/NoRGN SynthFakeRGN/SynthNoRGN SynthNet TrueRGN/NoRGN SynthFakeRGN/SynthNoRGN SynthNet
+Avg runtime, FPS 0.27 0.19 0.48 1.22 0.62 0.36
+Avg power, W 6.5 6.5 .5 280 90 170
+Comparing segmentation models trained with and without
+true RGN data we can emphasise the superiority of the
+former. Indeed, in all cases, when evaluated on data from
+train field, TrueRGN and SynthFakeRGN models constantly
+perform better than NoRGN and even its more computationally
+expensive analogue SynthNoRGN. For example, TrueRGN
+models trained and evaluated on frames data perform on
+average 2.2% better than corresponding NoRGN models and
+2.4% better than SynthNoRGN ones in terms of multiclass
+mIoU metric. Also from both Tabs. I and II it is clear, that
+TrueRGN models better generalize to the different test data.
+As an example, U-Net model (Tab. II) trained on orthophoto
+data, gives score of 75.3 % when evaluated on frames data,
+which is 6.3 % less, than the same model evaluated on frames
+test set. At the same time, all other U-Net models trained on
+orhtophoto data overfit to the training domain which results in
+the differences of 26 %, 20.9 % and 24 % for SynthFakeRGN,
+NoRGN and SynthNoRGN respectively.
+It is clearly seen from both tables that in almost all
+cases SynthFakeRGN model performs considerably better than
+NoRGN and SynthNoRGN with both mIoU and ROC-AUC
+metrics, which means, that it has benefited from training
+procedure introduced in this paper. For example, trained on
+orthophoto data, SynthFakeRGN models on average outper-
+form NoRGN by 3.4 % and 0.017 in terms of multiclassmIoU and ROC-AUC metrics and by 2.8 % and 0.019 in
+terms of binary ones when evaluated on test dataset. It is
+also interesting to note, that being trained within the unified
+pipeline, SynthNoRGN performance in general deteriorates
+from a lighter NoRGN models, which have smaller number of
+parameters and computational complexity. This fact supports
+our approach, since it again highlights the importance of a
+proper training procedure.
+Finally, we observe that the models utilising fake RGN
+data trained with transfer learning approach (SynthFakeRGN)
+continuously perform better their analogues trained with just
+RGB to NIR GAN (SynthFakeRGNnoTL). The highest dif-
+ference occurs for models trained with frames data, where
+SynthFakeRGN outperform SynthFakeRGNnoTL by 5.1%on
+average in terms of multiclass mIoU metric measured for the
+test data. This fact proves, that the proposed transfer learning
+approach is a crucial component for fake NIR utilisation if
+semantic segmentation task is at hand.
+Overall we observe, that multiclass metrics are lower than
+binary ones, and the difference is especially pronounced when
+evaluated on the test field. Indeed, the binary classification is
+an easier problem to solve, compared to the task of separating
+plants by age, however, even for the latter case, the metrics
+are relatively high, which shows the success of our approach.
+We present the visual comparison of multi-class segmenta-
+
+--- Страница 9 ---
+IEEE JOURNAL OF SELECTED TOPICS IN APPLIED EARTH OBSERV ATIONS AND REMOTE SENSING, VOL. XX, NO. X, MONTH 2022 9
+tion performance between SynthFakeRGN, SynthNoRGN and
+NoRGN models with U-Net architecture in Fig. 5.
+In order to show the direct applicability of our hogweed
+precise monitoring system, we have ported both U-Net seman-
+tic segmentation and fake NIR synthesis models to a Jetson
+Xavier NX embedded system and simulated its runtime during
+the mission by imitating a frames stream from RGB camera.
+Due to the memory limitations of this computational unit we
+have performed a tile inference, where each frame is firstly
+divided into non-overlapping regions of size 100×100which
+are fed to the network with batch size 1, and the resulting local
+maps are stitched back to form a global map corresponding
+to the full frame resolution. Interestingly enough, we have
+managed to deploy all our networks to an embedded platform
+without any loss of segmentation quality, so we do not report
+the difference in metrics for networks evaluated on different
+platforms. In Table II we report on the runtime and a power
+consumption we have measured during the simulation. For
+comparison we also report values for the run on NVIDIA Tesla
+V100, where we have used our original models without any
+optimizations and we passed the whole 3000×4000 frame to
+the network.
+V. C ONCLUSIONS
+In this article, we have proposed and evaluated an idea
+of incorporating knowledge about multispectral bands in the
+neural network performing semantic segmentation of Hogweed
+crops. We have collected and labeled two datasets consisting
+of old and young hogweed crops from two different fields
+within the same region, one of which involved only RGB
+frames stream and is used for testing purposes, and another
+one was collected with additional RGN camera on board. We
+have proposed an idea of labeling frames by labeling the corre-
+sponding orthophotos and we have successfully applied it for
+both datasets. We also proposed an alignment strategy, which
+allowed us to align RGB, RGN, and labels orthophotos be-
+tween each other and RGB frames from the frame stream. With
+this data, we have trained a U-Net and SegNet architectures to
+perform semantic segmentation, and we have used a transfer
+learning procedure to train a separate synthesis head consisting
+of a another lighter network which performs the synthesis of
+RGN data to facilitate further semantic segmentation task. We
+have observed that this approach is at least 1.1 % better than
+end-to-end training of either segmentation or both synthesis
+and segmentation networks when only RGB data is involved.
+We have also shown, that this training procedure allows to
+obtain segmentation quality of the same level as when a real
+RGN data is provided. We have ported our trained networks
+to an embedded system and showed that they are capable
+of performing processing part of a real mission targeting
+precise location of hogweed crops. The proposed approach
+can be scaled to other agricultural industry related application
+including the diseases and insects detection.
+REFERENCES
+[1] Ye Liu, Xiaoyuan Ma, Lei Shu, Gerhard Petrus Hancke, and Adnan M.
+Abu-Mahfouz. From industry 4.0 to agriculture 4.0: Current status,
+enabling technologies, and research challenges. IEEE Transactions on
+Industrial Informatics , 17(6):4322–4334, 2021.[2] Inkyu Sa, Marija Popovi ´c, Raghav Khanna, Zetao Chen, Philipp Lottes,
+Frank Liebisch, Juan Nieto, Cyrill Stachniss, Achim Walter, and Roland
+Siegwart. Weedmap: A large-scale semantic weed mapping framework
+using aerial multispectral imaging and deep neural network for precision
+farming. Remote Sensing , 10(9):1423, 2018.
+[3] Andres Milioto, Philipp Lottes, and Cyrill Stachniss. Real-time se-
+mantic segmentation of crop and weed for precision agriculture robots
+leveraging background knowledge in cnns. In 2018 IEEE International
+Conference on Robotics and Automation (ICRA) , pages 2229–2235,
+2018.
+[4] Jinya Su, Dewei Yi, Baofeng Su, Zhiwen Mi, Cunjia Liu, Xiaoping Hu,
+Xiangming Xu, Lei Guo, and Wen-Hua Chen. Aerial visual perception
+in smart farming: Field study of wheat yellow rust monitoring. IEEE
+Transactions on Industrial Informatics , 17(3):2242–2249, 2021.
+[5] Philipp Lottes, Raghav Khanna, Johannes Pfeifer, Roland Siegwart, and
+Cyrill Stachniss. Uav-based crop and weed classification for smart
+farming. In 2017 IEEE International Conference on Robotics and
+Automation (ICRA) , pages 3024–3031. IEEE, 2017.
+[6] Olaf Ronneberger, Philipp Fischer, and Thomas Brox. U-net: Con-
+volutional networks for biomedical image segmentation. In Nassir
+Navab, Joachim Hornegger, William M. Wells, and Alejandro F. Frangi,
+editors, Medical Image Computing and Computer-Assisted Intervention
+– MICCAI 2015 , pages 234–241, Cham, 2015. Springer International
+Publishing.
+[7] Philipp Lottes, Jens Behley, Andres Milioto, and Cyrill Stachniss. Fully
+convolutional networks with sequential information for robust crop and
+weed detection in precision farming. IEEE Robotics and Automation
+Letters , 3(4):2870–2877, 2018.
+[8] Alexander Menshchikov, Dmitry Shadrin, Viktor Prutyanov, Daniil
+Lopatkin, Sergey Sosnin, Evgeny Tsykunov, Evgeny Iakovlev, and An-
+drey Somov. Real-time detection of hogweed: Uav platform empowered
+by deep learning. IEEE Transactions on Computers , 2021.
+[9] Mi Zhang, Faen Zhang, Nicholas D Lane, Yuanchao Shu, Xiao Zeng,
+Biyi Fang, Shen Yan, and Hui Xu. Deep learning in the era of edge
+computing: Challenges and opportunities. Fog Computing: Theory and
+Practice , pages 67–78, 2020.
+[10] Renzo Andri, Lukas Cavigelli, Davide Rossi, and Luca Benini. Yodann:
+An architecture for ultralow power binary-weight cnn acceleration. IEEE
+Transactions on Computer-Aided Design of Integrated Circuits and
+Systems , 37(1):48–60, 2017.
+[11] Junfeng Zheng, Jiangyun Li, Yan Liu, and Weicun Zhang. Real-
+time semantic segmentation network for edge deployment. In Chinese
+Intelligent Systems Conference , pages 243–249. Springer, 2019.
+[12] Pablo Gonzalez-De-Santos, Roemi Fern ´andez, Delia Sep ´ulveda, Eduardo
+Navas, and Manuel Armada. Unmanned ground vehicles for smart farms.
+Agronomy-Climate Change & Food Security , page 73, 2020.
+[13] Luana Mendes dos Santos, Brenon Diennevan de Souza Barbosa, Adri-
+ano Valentim Diotto, Marco Thulio Andrade, Leonardo Conti, Giuseppe
+Rossi, et al. Determining the leaf area index and percentage of area
+covered by coffee crops using uav rgb images. IEEE Journal of Selected
+Topics in Applied Earth Observations and Remote Sensing , 13:6401–
+6409, 2020.
+[14] Chunhua Zhang, Dan Walters, and John M Kovacs. Applications of
+low altitude remote sensing in agriculture upon farmers’ requests–a case
+study in northeastern ontario, canada. PloS one , 9(11):e112894, 2014.
+[15] SR Herwitz, LF Johnson, SE Dunagan, RG Higgins, DV Sullivan,
+J Zheng, BM Lobitz, JG Leung, BA Gallmeyer, M Aoyagi, et al. Imaging
+from an unmanned aerial vehicle: agricultural surveillance and decision
+support. Computers and electronics in agriculture , 44(1):49–61, 2004.
+[16] M.J. O’Grady, D. Langton, and G.M.P. O’Hare. Edge computing:
+A tractable model for smart agriculture? Artificial Intelligence in
+Agriculture , 3:42–51, 2019.
+[17] Edward Barnes, T.R. Clarke, S.E. Richards, Paul Colaizzi, Julio Haber-
+land, M. Kostrzewski, Peter Waller, Christopher Choi, E. Riley, and T.L
+Thompson. Coincident detection of crop water stress, nitrogen status,
+and canopy density using ground based multispectral data. 01 2000.
+[18] Jaime Luis Honrado, Dominic Solpico, Chrisandro Favila, Edgardo
+Tongson, Gregory Tangonan, and Nathaniel Libatique. Uav imaging
+with low-cost multispectral imaging system for precision agriculture
+applications. pages 1–7, 10 2017.
+[19] Panagiotis Radoglou-Grammatikis, Panagiotis Sarigiannidis, Thomas
+Lagkas, and Ioannis Moscholios. A compilation of uav applications
+for precision agriculture. Computer Networks , 172:107148, 2020.
+[20] Lei Deng, Zhihui Mao, Xiaojuan Li, Zhuowei Hu, Fuzhou Duan, and
+Yanan Yan. Uav-based multispectral remote sensing for precision
+agriculture: A comparison between different cameras. ISPRS Journal
+of Photogrammetry and Remote Sensing , 146:124–136, 2018.
+
+--- Страница 10 ---
+IEEE JOURNAL OF SELECTED TOPICS IN APPLIED EARTH OBSERV ATIONS AND REMOTE SENSING, VOL. XX, NO. X, MONTH 2022 10
+[21] Liangju Wang, Yunhong Duan, Libo Zhang, Tanzeel U. Rehman, Dong-
+dong Ma, and Jian Jin. Precise estimation of ndvi with a simple nir
+sensitive rgb camera and machine learning methods for corn plants.
+Sensors , 20(11), 2020.
+[22] Lucas Costa, Leon Nunes, and Yiannis Ampatzidis. A new visible band
+index (vndvi) for estimating ndvi values on rgb images utilizing genetic
+algorithms. Computers and Electronics in Agriculture , 172:105334,
+2020.
+[23] Phillip Isola, Jun-Yan Zhu, Tinghui Zhou, and Alexei A Efros. Image-
+to-image translation with conditional adversarial networks. CVPR , 2017.
+[24] Xiangtian Yuan, Jiaojiao Tian, and Peter Reinartz. Generating artificial
+near infrared spectral band from rgb image using conditional generative
+adversarial network. ISPRS Annals of the Photogrammetry, Remote
+Sensing and Spatial Information Sciences , 3:279–285, 2020.
+[25] Ayush Soni, Alexander Loui, Scott Brown, and Carl Salvaggio. High-
+quality multispectral image generation using conditional gans. Electronic
+Imaging , 2020(8):86–1, 2020.
+[26] Ethan Rublee, Vincent Rabaud, Kurt Konolige, and Gary Bradski. Orb:
+An efficient alternative to sift or surf. In 2011 International Conference
+on Computer Vision , pages 2564–2571, 2011.
+[27] Vijay Badrinarayanan, Alex Kendall, and Roberto Cipolla. Segnet: A
+deep convolutional encoder-decoder architecture for image segmenta-
+tion. IEEE transactions on pattern analysis and machine intelligence ,
+39(12):2481–2495, 2017.
+[28] Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun. Deep
+residual learning for image recognition. In Proceedings of the IEEE
+conference on computer vision and pattern recognition , pages 770–778,
+2016.
+[29] Shervin Minaee, Yuri Y Boykov, Fatih Porikli, Antonio J Plaza, Nasser
+Kehtarnavaz, and Demetri Terzopoulos. Image segmentation using deep
+learning: A survey. IEEE transactions on pattern analysis and machine
+intelligence , 2021.
+[30] Ting-Chun Wang, Ming-Yu Liu, Jun-Yan Zhu, Andrew Tao, Jan Kautz,
+and Bryan Catanzaro. High-resolution image synthesis and semantic
+manipulation with conditional gans. In Proceedings of the IEEE
+conference on computer vision and pattern recognition , pages 8798–
+8807, 2018.
+[31] Yuantian Cai and U. Kintak. Low-light image enhancement based on
+modified u-net. In 2019 International Conference on Wavelet Analysis
+and Pattern Recognition (ICWAPR) , pages 1–7, 2019.
+[32] Adam Paszke, Sam Gross, Francisco Massa, Adam Lerer, James Brad-
+bury, Gregory Chanan, Trevor Killeen, Zeming Lin, Natalia Gimelshein,
+Luca Antiga, Alban Desmaison, Andreas Kopf, Edward Yang, Zachary
+DeVito, Martin Raison, Alykhan Tejani, Sasank Chilamkurthy, Benoit
+Steiner, Lu Fang, Junjie Bai, and Soumith Chintala. Pytorch: An
+imperative style, high-performance deep learning library. In H. Wallach,
+H. Larochelle, A. Beygelzimer, F. d'Alch ´e-Buc, E. Fox, and R. Garnett,
+editors, Advances in Neural Information Processing Systems 32 , pages
+8024–8035. Curran Associates, Inc., 2019.
+[33] Diederik P. Kingma and Jimmy Ba. Adam: A method for stochastic
+optimization, 2017.
+[34] Xiaohan Ma, Rize Jin, Kyung-Ah Sohn, JoonYoung Paik, Jing Sun,
+and Tae-Sun Chung. Improving generative adversarial networks with
+adaptive control learning. In 2018 IEEE Visual Communications and
+Image Processing (VCIP) , pages 1–4, 2018.
+[35] Ian Goodfellow, Jean Pouget-Abadie, Mehdi Mirza, Bing Xu, David
+Warde-Farley, Sherjil Ozair, Aaron Courville, and Yoshua Bengio.
+Generative adversarial nets. Advances in neural information processing
+systems , 27, 2014.
+[36] Bolei Zhou, Hang Zhao, Xavier Puig, Sanja Fidler, Adela Barriuso, and
+Antonio Torralba. Scene parsing through ade20k dataset. In Proceedings
+of the IEEE conference on computer vision and pattern recognition ,
+pages 633–641, 2017.
+[37] Aleksandar Zlateski, Ronnachai Jaroensri, Prafull Sharma, and Fr ´edo
+Durand. On the importance of label quality for semantic segmentation.
+InProceedings of the IEEE Conference on Computer Vision and Pattern
+Recognition , pages 1479–1487, 2018.
+[38] S ,erban V ˘adineanu, Daniel Pelt, Oleh Dzyubachyk, and Joost Batenburg.
+An analysis of the impact of annotation errors on the accuracy of deep
+learning for cell segmentation. In Medical Imaging with Deep Learning ,
+2021.
+Iaroslav Koshelev received the BSc and MSc de-
+grees in Physics at Moscow State University, Russia,
+in 2017 and 2019, respectively. He also receved the
+MSc degree with honours in Data Science (DS)
+at Skolkovo Institute of Science and Technology
+(Skoltech), Russia, 2019. Currently, Iaroslav is pur-
+suing the PhD degree in DS at Skoltech. His research
+interests include image/video processing, deep learn-
+ing and sensors fusion.
+Maxim Savinov is a PhD student at Saint Peters-
+burg State University of Aerospace Instrumentation
+(SUAI), Russia. Maxim received his MSc degree
+in Information Science and Technology at Skolkovo
+Institute of Science and Technology (Skoltech), Rus-
+sia, in 2022. His research interests include machine
+learning and computer vision.
+Alexander Menshchikov is a Research Engineer at
+Rakuten, Japan. He received his PhD in Data Science
+from Skolkovo Institute of Science and Technology
+(Skoltech), Russia, in 2020 and MS in Applied
+Physics and Mathematics at the Moscow Institute
+of Physics and Technology (MIPT), Russia, in 2014.
+He was a visiting student at Aeroastro Department of
+Massachusetts Institute of Technology (MIT), US, in
+a spring semester in 2015. Alexander’s background
+is in Applied Mathematics and Physics. Before
+joining Skoltech he had worked as an Engineer in
+Central Aerohydromechanis Institute (TsAGI), Russia, (2011-2014), as a
+Space Systems Engineer in Sputnix and Dauria Aerospace companies (2015-
+2016), as an Engineer in mechatronics and robotics group in TOPCON
+company (2017-2018). His current research interests include robotics, artificial
+intelligence and embedded systems.
+Andrey Somov is an Assistant Professor at
+Skolkovo Institute of Science and Technology
+(Skoltech), Russia. He graduated at ’MATI’-Russian
+State Technological University, Russia (2004) and
+holds the diploma of Electronics Engineer from the
+same institution (2006). Andrey received his PhD
+(2009) from the University of Trento, Italy, for work
+in the field of power management in wireless sensor
+networks (WSN). Before joining Skoltech (2017), he
+had worked as a Senior Researcher for CREATE-
+NET Research Center, Italy (2010-2015) and as a
+Research Fellow for the University of Exeter, UK (2016-2017). Andrey
+has published more than 100 papers in peer-reviewed international journals
+and conference proceedings. His current research interests include intelligent
+sensing, machine learning, computer vision and associated proof-of-concept
+implementation. Dr. Somov holds some awards in the fields of WSN and
+Internet of Things (IoT) including the Google IoT Technology Research
+Award (2016) and the Best Paper Award at IEEE IoP conference (2019).
