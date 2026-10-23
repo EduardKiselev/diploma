@@ -1,0 +1,14 @@
+{
+    "pci-0000:02:00.0-usb-0:2:1.0-video-index0": {
+        "name": "cam_1",
+        "port": "usb-0:2:1.0"
+    },
+    "pci-0000:02:00.0-usb-0:4:1.0-video-index0": {
+        "name": "cam_2",
+        "port": "usb-0:4:1.0"
+    },
+    "pci-0000:02:00.0-usb-0:6:1.0-video-index0": {
+        "name": "cam_3",
+        "port": "usb-0:6:1.0"
+    }
+}
