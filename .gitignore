@@ -49,3 +49,7 @@ Thumbs.db
 *.log
 
 .~lock.*
+
+photos/
+server/
+videos/
