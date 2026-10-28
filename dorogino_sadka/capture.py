@@ -54,13 +54,13 @@ def capture_from_camera(device_path, camera_name):
     # Захват кадра с повторными попытками
     MAX_RETRIES = 3
     frame = None
-    
+
     for attempt in range(MAX_RETRIES):
         ret, frame = cap.read()
         if ret and frame is not None and frame.size > 0:
             break
         time.sleep(0.1)  # небольшая пауза перед повтором
-    
+
     # ВАЖНО: полностью освобождаем камеру
     cap.release()
     cap = None  # явное обнуление
