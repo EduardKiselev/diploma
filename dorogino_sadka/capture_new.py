@@ -14,9 +14,9 @@ UI-приложение для захвата фото и видео с USB-ка
 import cv2
 import sys
 import time
-import shutil
 import signal
 import logging
+import paramiko
 from datetime import datetime
 from pathlib import Path
 
@@ -47,6 +47,11 @@ VIDEO_HEIGHT = 720
 
 PHOTOS_DIR.mkdir(exist_ok=True)
 VIDEOS_DIR.mkdir(exist_ok=True)
+
+# SSH сервер для копирования файлов
+SSH_HOST = "192.168.1.254"
+SSH_USER = "computador-xx"
+SSH_REMOTE_DIR = "~/kiln_cameras"
 
 
 # ─── Поток записи видео ─────────────────────────────────────────────────────
@@ -383,6 +388,7 @@ class CaptureUI(QWidget):
         name = Path(filepath).name
         self.set_status(f"📸 [{num}/{total}] {name} ✓", "#a6e3a1")
         logger.info(f"✅ Фото: {name}")
+        self.upload_to_server(filepath)
 
     def on_photo_fail(self, camera_name, num, total):
         self.set_status(f"❌ [{num}/{total}] Ошибка: {camera_name}", "#f38ba8")
@@ -441,15 +447,38 @@ class CaptureUI(QWidget):
         self.reset_ui()
         self.show_message("Ошибка видео", message)
 
-    # ─── Заглушка: копирование на сервер ─────────────────────────────────────
+    # ─── Копирование на сервер по SSH ────────────────────────────────────────
 
     def upload_to_server(self, filepath):
-        """Заглушка — копирует видео в 'server' поддиректорию."""
-        server_dir = SCRIPT_DIR / "server"
-        server_dir.mkdir(exist_ok=True)
-        dest = server_dir / Path(filepath).name
-        shutil.copy2(filepath, dest)
-        logger.info(f"📤 Видео скопировано на сервер: {dest}")
+        """Копирует файл на сервер по SSH/SFTP."""
+        filepath = Path(filepath)
+        # Определяем подпапку по расширению
+        if filepath.suffix.lower() in (".jpg", ".jpeg", ".png"):
+            remote_subdir = "photo"
+        else:
+            remote_subdir = "video"
+
+        try:
+            ssh = paramiko.SSHClient()
+            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            ssh.connect(SSH_HOST, username=SSH_USER, timeout=10)
+
+            # Создаём директории на сервере
+            remote_path = f"{SSH_REMOTE_DIR}/{remote_subdir}"
+            ssh.exec_command(f"mkdir -p {remote_path}")
+
+            # Копируем файл через SFTP
+            sftp = ssh.open_sftp()
+            remote_file = f"{remote_path}/{filepath.name}"
+            sftp.put(str(filepath), remote_file)
+            sftp.close()
+            ssh.close()
+
+            # Удаляем локальный файл после успешного копирования
+            filepath.unlink()
+            logger.info(f"📤 Файл скопирован на сервер: {SSH_HOST}:{remote_file}")
+        except Exception as e:
+            logger.error(f"❌ Ошибка копирования на сервер: {e}")
 
     # ── Клавиатура ──
 
