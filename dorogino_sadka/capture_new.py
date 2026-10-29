@@ -210,24 +210,24 @@ class CaptureUI(QWidget):
         self.setWindowTitle("Захват камер")
 
         main_layout = QVBoxLayout()
-        main_layout.setSpacing(20)
-        main_layout.setContentsMargins(30, 30, 30, 30)
+        main_layout.setSpacing(8)
+        main_layout.setContentsMargins(10, 10, 10, 10)
 
         # Заголовок
         title = QLabel("📷 Захват фото и видео")
         title.setAlignment(Qt.AlignCenter)
-        title.setStyleSheet("font-size: 42px; font-weight: bold; color: #89dceb;")
+        title.setStyleSheet("font-size: 24px; font-weight: bold; color: #89dceb;")
         main_layout.addWidget(title)
 
         # Камеры инфо
         self.cameras_label = QLabel("Камеры: загрузка...")
         self.cameras_label.setAlignment(Qt.AlignCenter)
-        self.cameras_label.setStyleSheet("font-size: 24px; color: #a6adc8;")
+        self.cameras_label.setStyleSheet("font-size: 14px; color: #a6adc8;")
         main_layout.addWidget(self.cameras_label)
 
         # Номер телеги — поле ввода
         cart_label = QLabel("Номер телеги:")
-        cart_label.setStyleSheet("font-size: 36px;")
+        cart_label.setStyleSheet("font-size: 20px;")
         cart_label.setAlignment(Qt.AlignCenter)
         main_layout.addWidget(cart_label)
 
@@ -235,32 +235,32 @@ class CaptureUI(QWidget):
         self.cart_input.setReadOnly(True)
         self.cart_input.setAlignment(Qt.AlignCenter)
         self.cart_input.setPlaceholderText("Введите номер...")
-        self.cart_input.setFixedHeight(100)
+        self.cart_input.setFixedHeight(55)
         self.cart_input.setStyleSheet("""
             QLineEdit {
-                font-size: 52px;
+                font-size: 28px;
                 font-weight: bold;
                 background-color: #313244;
                 color: #ffffff;
-                border: 3px solid #89dceb;
-                border-radius: 12px;
-                padding: 5px;
+                border: 2px solid #89dceb;
+                border-radius: 8px;
+                padding: 3px;
             }
         """)
         main_layout.addWidget(self.cart_input)
 
         # Цифровая клавиатура
         numpad = QGridLayout()
-        numpad.setSpacing(10)
+        numpad.setSpacing(6)
 
         btn_style = """
             QPushButton {
-                font-size: 36px;
+                font-size: 22px;
                 font-weight: bold;
                 background-color: #45475a;
                 color: #ffffff;
-                border-radius: 12px;
-                min-height: 80px;
+                border-radius: 8px;
+                min-height: 50px;
             }
             QPushButton:pressed {
                 background-color: #585b70;
@@ -268,12 +268,12 @@ class CaptureUI(QWidget):
         """
         del_style = """
             QPushButton {
-                font-size: 28px;
+                font-size: 16px;
                 font-weight: bold;
                 background-color: #f38ba8;
                 color: #1e1e2e;
-                border-radius: 12px;
-                min-height: 80px;
+                border-radius: 8px;
+                min-height: 50px;
             }
             QPushButton:pressed {
                 background-color: #eba0ac;
@@ -281,12 +281,12 @@ class CaptureUI(QWidget):
         """
         enter_style = """
             QPushButton {
-                font-size: 28px;
+                font-size: 16px;
                 font-weight: bold;
                 background-color: #a6e3a1;
                 color: #1e1e2e;
-                border-radius: 12px;
-                min-height: 80px;
+                border-radius: 8px;
+                min-height: 50px;
             }
             QPushButton:pressed {
                 background-color: #94e2d5;
@@ -315,7 +315,7 @@ class CaptureUI(QWidget):
             numpad.addWidget(btn, 2, i)
 
         # Ряд 4: Удалить 0 Ввод
-        btn_del = QPushButton("⌫ Удалить")
+        btn_del = QPushButton("⌫")
         btn_del.setStyleSheet(del_style)
         btn_del.clicked.connect(self.on_backspace)
         numpad.addWidget(btn_del, 3, 0)
@@ -335,25 +335,25 @@ class CaptureUI(QWidget):
         # Статус
         self.status_label = QLabel("Готов к работе")
         self.status_label.setAlignment(Qt.AlignCenter)
-        self.status_label.setStyleSheet("font-size: 32px; color: #a6e3a1;")
+        self.status_label.setStyleSheet("font-size: 20px; color: #a6e3a1;")
         main_layout.addWidget(self.status_label)
 
         # Прогресс-бар
         self.progress_bar = QProgressBar()
         self.progress_bar.setRange(0, VIDEO_DURATION_SEC)
-        self.progress_bar.setFixedHeight(45)
+        self.progress_bar.setFixedHeight(25)
         self.progress_bar.setStyleSheet("""
             QProgressBar {
                 background-color: #313244;
-                border-radius: 12px;
+                border-radius: 8px;
                 text-align: center;
-                font-size: 22px;
+                font-size: 14px;
                 color: #ffffff;
                 border: none;
             }
             QProgressBar::chunk {
                 background-color: #89dceb;
-                border-radius: 12px;
+                border-radius: 8px;
             }
         """)
         self.progress_bar.setVisible(False)
@@ -362,11 +362,9 @@ class CaptureUI(QWidget):
         # Таймер обратного отсчёта
         self.timer_label = QLabel("")
         self.timer_label.setAlignment(Qt.AlignCenter)
-        self.timer_label.setStyleSheet("font-size: 30px; color: #f9e2af;")
+        self.timer_label.setStyleSheet("font-size: 18px; color: #f9e2af;")
         self.timer_label.setVisible(False)
         main_layout.addWidget(self.timer_label)
-
-        main_layout.addStretch()
 
         self.setLayout(main_layout)
         self.showFullScreen()
@@ -535,17 +533,17 @@ class CaptureUI(QWidget):
             }
             QMessageBox QLabel {
                 color: #ffffff;
-                font-size: 24px;
-                min-width: 500px;
-                padding: 20px;
+                font-size: 18px;
+                min-width: 300px;
+                padding: 15px;
             }
             QPushButton {
-                font-size: 22px;
-                padding: 15px 40px;
+                font-size: 16px;
+                padding: 10px 25px;
                 background-color: #45475a;
                 color: white;
-                border-radius: 10px;
-                margin: 10px;
+                border-radius: 8px;
+                margin: 5px;
             }
             QPushButton:hover {
                 background-color: #585b70;
