@@ -283,30 +283,24 @@ class CaptureUI(QWidget):
             }
         """
 
-        # Ряд 1: 1 2 3 4 5 6
-        for i, digit in enumerate("123456"):
+        # Ряд 1: 1 2 3 4 5 ⌫
+        for i, digit in enumerate("12345"):
             btn = QPushButton(digit)
             btn.setStyleSheet(btn_style)
             btn.clicked.connect(lambda checked, d=digit: self.on_digit(d))
             numpad.addWidget(btn, 0, i)
 
-        # Ряд 2: 7 8 9 ⌫ 0 Ввод
-        digits_row2 = ["7", "8", "9"]
-        for i, digit in enumerate(digits_row2):
+        btn_del = QPushButton("⌫")
+        btn_del.setStyleSheet(del_style)
+        btn_del.clicked.connect(self.on_backspace)
+        numpad.addWidget(btn_del, 0, 5)
+
+        # Ряд 2: 6 7 8 9 0 Ввод
+        for i, digit in enumerate("67890"):
             btn = QPushButton(digit)
             btn.setStyleSheet(btn_style)
             btn.clicked.connect(lambda checked, d=digit: self.on_digit(d))
             numpad.addWidget(btn, 1, i)
-
-        btn_del = QPushButton("⌫")
-        btn_del.setStyleSheet(del_style)
-        btn_del.clicked.connect(self.on_backspace)
-        numpad.addWidget(btn_del, 1, 3)
-
-        btn_zero = QPushButton("0")
-        btn_zero.setStyleSheet(btn_style)
-        btn_zero.clicked.connect(lambda: self.on_digit("0"))
-        numpad.addWidget(btn_zero, 1, 4)
 
         btn_enter = QPushButton("Ввод ✓")
         btn_enter.setStyleSheet(enter_style)
