@@ -239,18 +239,18 @@ class CaptureUI(QWidget):
         cart_row.addWidget(self.cart_input)
         main_layout.addLayout(cart_row)
 
-        # Цифровая клавиатура
+        # Цифровая клавиатура — 2 ряда
         numpad = QGridLayout()
         numpad.setSpacing(10)
 
         btn_style = """
             QPushButton {
-                font-size: 36px;
+                font-size: 32px;
                 font-weight: bold;
                 background-color: #45475a;
                 color: #ffffff;
                 border-radius: 12px;
-                min-height: 90px;
+                min-height: 100px;
             }
             QPushButton:pressed {
                 background-color: #585b70;
@@ -258,12 +258,12 @@ class CaptureUI(QWidget):
         """
         del_style = """
             QPushButton {
-                font-size: 26px;
+                font-size: 24px;
                 font-weight: bold;
                 background-color: #f38ba8;
                 color: #1e1e2e;
                 border-radius: 12px;
-                min-height: 90px;
+                min-height: 100px;
             }
             QPushButton:pressed {
                 background-color: #eba0ac;
@@ -271,54 +271,47 @@ class CaptureUI(QWidget):
         """
         enter_style = """
             QPushButton {
-                font-size: 26px;
+                font-size: 24px;
                 font-weight: bold;
                 background-color: #a6e3a1;
                 color: #1e1e2e;
                 border-radius: 12px;
-                min-height: 90px;
+                min-height: 100px;
             }
             QPushButton:pressed {
                 background-color: #94e2d5;
             }
         """
 
-        # Ряд 1: 1 2 3
-        for i, digit in enumerate("123"):
+        # Ряд 1: 1 2 3 4 5 6
+        for i, digit in enumerate("123456"):
             btn = QPushButton(digit)
             btn.setStyleSheet(btn_style)
             btn.clicked.connect(lambda checked, d=digit: self.on_digit(d))
             numpad.addWidget(btn, 0, i)
 
-        # Ряд 2: 4 5 6
-        for i, digit in enumerate("456"):
+        # Ряд 2: 7 8 9 ⌫ 0 Ввод
+        digits_row2 = ["7", "8", "9"]
+        for i, digit in enumerate(digits_row2):
             btn = QPushButton(digit)
             btn.setStyleSheet(btn_style)
             btn.clicked.connect(lambda checked, d=digit: self.on_digit(d))
             numpad.addWidget(btn, 1, i)
 
-        # Ряд 3: 7 8 9
-        for i, digit in enumerate("789"):
-            btn = QPushButton(digit)
-            btn.setStyleSheet(btn_style)
-            btn.clicked.connect(lambda checked, d=digit: self.on_digit(d))
-            numpad.addWidget(btn, 2, i)
-
-        # Ряд 4: Удалить 0 Ввод
         btn_del = QPushButton("⌫")
         btn_del.setStyleSheet(del_style)
         btn_del.clicked.connect(self.on_backspace)
-        numpad.addWidget(btn_del, 3, 0)
+        numpad.addWidget(btn_del, 1, 3)
 
         btn_zero = QPushButton("0")
         btn_zero.setStyleSheet(btn_style)
         btn_zero.clicked.connect(lambda: self.on_digit("0"))
-        numpad.addWidget(btn_zero, 3, 1)
+        numpad.addWidget(btn_zero, 1, 4)
 
         btn_enter = QPushButton("Ввод ✓")
         btn_enter.setStyleSheet(enter_style)
         btn_enter.clicked.connect(self.on_enter)
-        numpad.addWidget(btn_enter, 3, 2)
+        numpad.addWidget(btn_enter, 1, 5)
 
         main_layout.addLayout(numpad)
 
@@ -357,10 +350,7 @@ class CaptureUI(QWidget):
         main_layout.addWidget(self.timer_label)
 
         self.setLayout(main_layout)
-        # Для целевого устройства с повёрнутым экраном: showFullScreen()
-        # Для тестирования на dev-машине: setFixedSize + show
-        self.setFixedSize(600, 1024)
-        self.show()
+        self.showFullScreen()
 
     def load_cameras(self):
         self.config = load_camera_config()
