@@ -357,7 +357,10 @@ class CaptureUI(QWidget):
         main_layout.addWidget(self.timer_label)
 
         self.setLayout(main_layout)
-        self.showFullScreen()
+        # Для целевого устройства с повёрнутым экраном: showFullScreen()
+        # Для тестирования на dev-машине: setFixedSize + show
+        self.setFixedSize(600, 1024)
+        self.show()
 
     def load_cameras(self):
         self.config = load_camera_config()
