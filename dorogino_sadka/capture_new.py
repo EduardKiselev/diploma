@@ -15,6 +15,7 @@ import cv2
 import sys
 import time
 import shutil
+import signal
 import logging
 from datetime import datetime
 from pathlib import Path
@@ -356,7 +357,7 @@ class CaptureUI(QWidget):
         main_layout.addWidget(self.timer_label)
 
         self.setLayout(main_layout)
-        self.setFixedSize(600, 1024)
+        self.showFullScreen()
 
     def load_cameras(self):
         self.config = load_camera_config()
@@ -534,6 +535,9 @@ class CaptureUI(QWidget):
 # ─── Точка входа ─────────────────────────────────────────────────────────────
 
 def main():
+    # Обработка Ctrl+C
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
+
     if len(sys.argv) > 1 and sys.argv[1] == "--init":
         init_config()
         return
