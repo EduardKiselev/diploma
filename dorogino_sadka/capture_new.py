@@ -210,29 +210,29 @@ class CaptureUI(QWidget):
         self.setWindowTitle("Захват камер")
 
         main_layout = QVBoxLayout()
-        main_layout.setSpacing(8)
-        main_layout.setContentsMargins(10, 10, 10, 10)
+        main_layout.setSpacing(12)
+        main_layout.setContentsMargins(15, 15, 15, 15)
 
         # Номер телеги — в одну строку
         cart_row = QHBoxLayout()
         cart_label = QLabel("Номер телеги:")
-        cart_label.setStyleSheet("font-size: 22px;")
+        cart_label.setStyleSheet("font-size: 28px;")
         cart_row.addWidget(cart_label)
 
         self.cart_input = QLineEdit()
         self.cart_input.setReadOnly(True)
         self.cart_input.setAlignment(Qt.AlignCenter)
         self.cart_input.setPlaceholderText("...")
-        self.cart_input.setFixedHeight(55)
+        self.cart_input.setFixedHeight(70)
         self.cart_input.setStyleSheet("""
             QLineEdit {
-                font-size: 30px;
+                font-size: 38px;
                 font-weight: bold;
                 background-color: #313244;
                 color: #ffffff;
-                border: 2px solid #89dceb;
-                border-radius: 8px;
-                padding: 3px;
+                border: 3px solid #89dceb;
+                border-radius: 10px;
+                padding: 5px;
             }
         """)
         cart_row.addWidget(self.cart_input)
@@ -240,16 +240,16 @@ class CaptureUI(QWidget):
 
         # Цифровая клавиатура
         numpad = QGridLayout()
-        numpad.setSpacing(8)
+        numpad.setSpacing(10)
 
         btn_style = """
             QPushButton {
-                font-size: 28px;
+                font-size: 36px;
                 font-weight: bold;
                 background-color: #45475a;
                 color: #ffffff;
-                border-radius: 10px;
-                min-height: 65px;
+                border-radius: 12px;
+                min-height: 90px;
             }
             QPushButton:pressed {
                 background-color: #585b70;
@@ -257,12 +257,12 @@ class CaptureUI(QWidget):
         """
         del_style = """
             QPushButton {
-                font-size: 20px;
+                font-size: 26px;
                 font-weight: bold;
                 background-color: #f38ba8;
                 color: #1e1e2e;
-                border-radius: 10px;
-                min-height: 65px;
+                border-radius: 12px;
+                min-height: 90px;
             }
             QPushButton:pressed {
                 background-color: #eba0ac;
@@ -270,12 +270,12 @@ class CaptureUI(QWidget):
         """
         enter_style = """
             QPushButton {
-                font-size: 20px;
+                font-size: 26px;
                 font-weight: bold;
                 background-color: #a6e3a1;
                 color: #1e1e2e;
-                border-radius: 10px;
-                min-height: 65px;
+                border-radius: 12px;
+                min-height: 90px;
             }
             QPushButton:pressed {
                 background-color: #94e2d5;
@@ -324,25 +324,25 @@ class CaptureUI(QWidget):
         # Статус
         self.status_label = QLabel("Готов к работе")
         self.status_label.setAlignment(Qt.AlignCenter)
-        self.status_label.setStyleSheet("font-size: 20px; color: #a6e3a1;")
+        self.status_label.setStyleSheet("font-size: 26px; color: #a6e3a1;")
         main_layout.addWidget(self.status_label)
 
         # Прогресс-бар
         self.progress_bar = QProgressBar()
         self.progress_bar.setRange(0, VIDEO_DURATION_SEC)
-        self.progress_bar.setFixedHeight(25)
+        self.progress_bar.setFixedHeight(35)
         self.progress_bar.setStyleSheet("""
             QProgressBar {
                 background-color: #313244;
-                border-radius: 8px;
+                border-radius: 10px;
                 text-align: center;
-                font-size: 14px;
+                font-size: 18px;
                 color: #ffffff;
                 border: none;
             }
             QProgressBar::chunk {
                 background-color: #89dceb;
-                border-radius: 8px;
+                border-radius: 10px;
             }
         """)
         self.progress_bar.setVisible(False)
@@ -351,12 +351,12 @@ class CaptureUI(QWidget):
         # Таймер обратного отсчёта
         self.timer_label = QLabel("")
         self.timer_label.setAlignment(Qt.AlignCenter)
-        self.timer_label.setStyleSheet("font-size: 18px; color: #f9e2af;")
+        self.timer_label.setStyleSheet("font-size: 24px; color: #f9e2af;")
         self.timer_label.setVisible(False)
         main_layout.addWidget(self.timer_label)
 
         self.setLayout(main_layout)
-        self.showFullScreen()
+        self.setFixedSize(600, 1024)
 
     def load_cameras(self):
         self.config = load_camera_config()
