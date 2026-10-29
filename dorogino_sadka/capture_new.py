@@ -213,32 +213,20 @@ class CaptureUI(QWidget):
         main_layout.setSpacing(8)
         main_layout.setContentsMargins(10, 10, 10, 10)
 
-        # Заголовок
-        title = QLabel("📷 Захват фото и видео")
-        title.setAlignment(Qt.AlignCenter)
-        title.setStyleSheet("font-size: 24px; font-weight: bold; color: #89dceb;")
-        main_layout.addWidget(title)
-
-        # Камеры инфо
-        self.cameras_label = QLabel("Камеры: загрузка...")
-        self.cameras_label.setAlignment(Qt.AlignCenter)
-        self.cameras_label.setStyleSheet("font-size: 14px; color: #a6adc8;")
-        main_layout.addWidget(self.cameras_label)
-
-        # Номер телеги — поле ввода
+        # Номер телеги — в одну строку
+        cart_row = QHBoxLayout()
         cart_label = QLabel("Номер телеги:")
-        cart_label.setStyleSheet("font-size: 20px;")
-        cart_label.setAlignment(Qt.AlignCenter)
-        main_layout.addWidget(cart_label)
+        cart_label.setStyleSheet("font-size: 22px;")
+        cart_row.addWidget(cart_label)
 
         self.cart_input = QLineEdit()
         self.cart_input.setReadOnly(True)
         self.cart_input.setAlignment(Qt.AlignCenter)
-        self.cart_input.setPlaceholderText("Введите номер...")
+        self.cart_input.setPlaceholderText("...")
         self.cart_input.setFixedHeight(55)
         self.cart_input.setStyleSheet("""
             QLineEdit {
-                font-size: 28px;
+                font-size: 30px;
                 font-weight: bold;
                 background-color: #313244;
                 color: #ffffff;
@@ -247,20 +235,21 @@ class CaptureUI(QWidget):
                 padding: 3px;
             }
         """)
-        main_layout.addWidget(self.cart_input)
+        cart_row.addWidget(self.cart_input)
+        main_layout.addLayout(cart_row)
 
         # Цифровая клавиатура
         numpad = QGridLayout()
-        numpad.setSpacing(6)
+        numpad.setSpacing(8)
 
         btn_style = """
             QPushButton {
-                font-size: 22px;
+                font-size: 28px;
                 font-weight: bold;
                 background-color: #45475a;
                 color: #ffffff;
-                border-radius: 8px;
-                min-height: 50px;
+                border-radius: 10px;
+                min-height: 65px;
             }
             QPushButton:pressed {
                 background-color: #585b70;
@@ -268,12 +257,12 @@ class CaptureUI(QWidget):
         """
         del_style = """
             QPushButton {
-                font-size: 16px;
+                font-size: 20px;
                 font-weight: bold;
                 background-color: #f38ba8;
                 color: #1e1e2e;
-                border-radius: 8px;
-                min-height: 50px;
+                border-radius: 10px;
+                min-height: 65px;
             }
             QPushButton:pressed {
                 background-color: #eba0ac;
@@ -281,12 +270,12 @@ class CaptureUI(QWidget):
         """
         enter_style = """
             QPushButton {
-                font-size: 16px;
+                font-size: 20px;
                 font-weight: bold;
                 background-color: #a6e3a1;
                 color: #1e1e2e;
-                border-radius: 8px;
-                min-height: 50px;
+                border-radius: 10px;
+                min-height: 65px;
             }
             QPushButton:pressed {
                 background-color: #94e2d5;
@@ -372,25 +361,15 @@ class CaptureUI(QWidget):
     def load_cameras(self):
         self.config = load_camera_config()
         if self.config is None:
-            self.cameras_label.setText("⚠️ Конфиг не найден — запустите: python capture.py --init")
-            self.cameras_label.setStyleSheet("font-size: 24px; color: #f38ba8;")
             self.set_numpad_enabled(False)
             return
 
         self.cameras = discover_cameras()
         if not self.cameras:
-            self.cameras_label.setText("⚠️ Камеры не найдены")
-            self.cameras_label.setStyleSheet("font-size: 24px; color: #f38ba8;")
             self.set_numpad_enabled(False)
             return
 
-        names = []
-        for cam in self.cameras:
-            cam_cfg = self.config.get(cam["by_path"], {})
-            names.append(cam_cfg.get("name", "???"))
-
-        self.cameras_label.setText(f"📷 Камеры ({len(self.cameras)}): {', '.join(names)}")
-        logger.info(f"📷 Найдено {len(self.cameras)} камер(а): {names}")
+        logger.info(f"📷 Найдено {len(self.cameras)} камер(а)")
 
     # ── Запуск обработки ──
 
