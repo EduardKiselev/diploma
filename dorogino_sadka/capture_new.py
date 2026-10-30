@@ -51,7 +51,7 @@ VIDEOS_DIR.mkdir(exist_ok=True)
 # SSH сервер для копирования файлов
 SSH_HOST = "192.168.1.100"
 SSH_USER = "kiseleveduard"
-SSH_REMOTE_DIR = "~/kiln_cameras"
+SSH_REMOTE_DIR = "/home/kiseleveduard/kiln_cameras"
 
 
 # ─── Поток записи видео ─────────────────────────────────────────────────────
@@ -463,18 +463,22 @@ class CaptureUI(QWidget):
             ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             ssh.connect(SSH_HOST, username=SSH_USER, timeout=10)
 
-            # Создаём директории на сервере
-            remote_path = f"{SSH_REMOTE_DIR}/{remote_subdir}"
-            ssh.exec_command(f"mkdir -p {remote_path}")
-
-            # Копируем файл через SFTP
             sftp = ssh.open_sftp()
+
+            # Создаём директории через SFTP (надёжнее чем exec_command)
+            remote_path = f"{SSH_REMOTE_DIR}/{remote_subdir}"
+            for part in remote_path.strip("/").split("/"):
+                current = f"/{part}"
+                try:
+                    sftp.stat(current)
+                except FileNotFoundError:
+                    sftp.mkdir(current)
+
             remote_file = f"{remote_path}/{filepath.name}"
             sftp.put(str(filepath), remote_file)
             sftp.close()
             ssh.close()
 
-            # Удаляем локальный файл после успешного копирования
             filepath.unlink()
             logger.info(f"📤 Файл скопирован на сервер: {SSH_HOST}:{remote_file}")
         except Exception as e:
