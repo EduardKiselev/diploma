@@ -464,18 +464,9 @@ class CaptureUI(QWidget):
             ssh.connect(SSH_HOST, username=SSH_USER, timeout=10)
 
             sftp = ssh.open_sftp()
-
-            # Создаём директории через SFTP (надёжнее чем exec_command)
-            remote_path = f"{SSH_REMOTE_DIR}/{remote_subdir}"
-            for part in remote_path.strip("/").split("/"):
-                current = f"/{part}"
-                try:
-                    sftp.stat(current)
-                except FileNotFoundError:
-                    sftp.mkdir(current)
-
-            remote_file = f"{remote_path}/{filepath.name}"
-            sftp.put(str(filepath), remote_file)
+            sftp.chdir(remote_subdir)
+            remote_file = f"kiln_cameras/{remote_subdir}/{filepath.name}"
+            sftp.put(str(filepath), filepath.name)
             sftp.close()
             ssh.close()
 
