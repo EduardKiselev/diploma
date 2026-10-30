@@ -40,8 +40,8 @@ VIDEOS_DIR = SCRIPT_DIR / "videos"
 WARMUP_FRAMES = 10
 CAPTURE_DELAY = 2
 
-VIDEO_DURATION_SEC = 5 * 60
-VIDEO_FPS = 15
+VIDEO_DURATION_SEC = 2 * 60
+VIDEO_FPS = 10
 VIDEO_WIDTH = 1280
 VIDEO_HEIGHT = 720
 
@@ -49,8 +49,8 @@ PHOTOS_DIR.mkdir(exist_ok=True)
 VIDEOS_DIR.mkdir(exist_ok=True)
 
 # SSH сервер для копирования файлов
-SSH_HOST = "192.168.1.254"
-SSH_USER = "computador-xx"
+SSH_HOST = "192.168.1.100"
+SSH_USER = "kiseleveduard"
 SSH_REMOTE_DIR = "~/kiln_cameras"
 
 
