@@ -452,28 +452,56 @@ class CaptureUI(QWidget):
     def upload_to_server(self, filepath):
         """Копирует файл на сервер по SSH/SFTP."""
         filepath = Path(filepath)
+
+        # Проверяем что файл полностью записан
+        if not filepath.exists():
+            logger.error(f"❌ [UPLOAD] Файл не существует: {filepath}")
+            return
+        if filepath.stat().st_size == 0:
+            logger.error(f"❌ [UPLOAD] Файл пустой: {filepath}")
+            return
+
         # Определяем подпапку по расширению
         if filepath.suffix.lower() in (".jpg", ".jpeg", ".png"):
             remote_subdir = "photo"
         else:
             remote_subdir = "video"
 
+        logger.info(f"📤 [UPLOAD] Начало загрузки: {filepath}")
+        logger.info(f"📤 [UPLOAD] Размер файла: {filepath.stat().st_size} байт")
+        logger.info(f"📤 [UPLOAD] Сервер: {SSH_HOST}, пользователь: {SSH_USER}")
+        logger.info(f"📤 [UPLOAD] Подпапка: {remote_subdir}")
+
         try:
             ssh = paramiko.SSHClient()
             ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            logger.info(f"📤 [UPLOAD] Подключение к {SSH_HOST}...")
             ssh.connect(SSH_HOST, username=SSH_USER, timeout=10)
+            logger.info(f"📤 [UPLOAD] Подключено")
 
             sftp = ssh.open_sftp()
+            logger.info(f"📤 [UPLOAD] SFTP открыт, текущая директория: {sftp.normalize('.')}")
+
+            logger.info(f"📤 [UPLOAD] Переход в {remote_subdir}...")
             sftp.chdir(remote_subdir)
-            remote_file = f"kiln_cameras/{remote_subdir}/{filepath.name}"
-            sftp.put(str(filepath), filepath.name)
+            logger.info(f"📤 [UPLOAD] Текущая директория после chdir: {sftp.normalize('.')}")
+
+            remote_filename = filepath.name
+            logger.info(f"📤 [UPLOAD] Имя файла для загрузки: {remote_filename}")
+            logger.info(f"📤 [UPLOAD] put({filepath} -> {remote_filename})")
+            sftp.put(str(filepath), remote_filename)
+            logger.info(f"📤 [UPLOAD] Файл загружен")
+
             sftp.close()
             ssh.close()
 
             filepath.unlink()
-            logger.info(f"📤 Файл скопирован на сервер: {SSH_HOST}:{remote_file}")
+            logger.info(f"📤 [UPLOAD] Локальный файл удалён: {filepath}")
+            logger.info(f"📤 Файл скопирован на сервер: {SSH_HOST}:~/kiln_cameras/{remote_subdir}/{filepath.name}")
         except Exception as e:
-            logger.error(f"❌ Ошибка копирования на сервер: {e}")
+            logger.error(f"❌ [UPLOAD] Ошибка: {type(e).__name__}: {e}")
+            logger.error(f"❌ [UPLOAD] Путь к файлу: {filepath}")
+            logger.error(f"❌ [UPLOAD] Файл существует: {filepath.exists()}")
 
     # ── Клавиатура ──
 
